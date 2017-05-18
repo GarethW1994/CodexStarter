@@ -1,62 +1,90 @@
+
+
 $(document).ready(function () { // wait for document to be ready
+	var searchResults = [];
+	
+	var userData = document.querySelector('.userData').innerHTML;
+	var panelData = document.querySelector('.panel').innerHTML;
+	
+	var userTemplate = Handlebars.compile(userData);
+	var panelTemplate = Handlebars.compile(panelData);
+	
+	var results = document.querySelector('.results');
+	var panelData = document.querySelector('.info-panel');
+	
+	var search = document.getElementById('search');
+	
+	$.getJSON('js/grid_Data.js').done(function(data) {
+		
+		
+		var myData = data.fs_DATABROWSE_F0101.data.gridData.rowset;
+		
+		console.log(myData);
+		
+		checkCRelationship(myData);
+		
+		results.innerHTML = userTemplate({
+			department: myData});
+		
+	
+		
+		
+	
+		search.onkeyup = function() {
+		searchResults = [];
+			
+			for (var i =0; i < myData.length; i++) {
+				if (myData[i].F0101_ALPH.includes(search.value)) {
+					searchResults.push(myData[i]);
+				}
+			}
+			
+			results.innerHTML = "";
+			
+			console.log(searchResults);
+			
+			results.innerHTML = userTemplate({
+			department: searchResults});
+		};
 
-    var req = {}; // empty object to hold our http request
-    req.deviceName = 'aisTester'; // <<---- here change to a unique name
-    req.username = "demo";
-    req.password = "demo";
+	});
+	
+function checkCRelationship(data) {
+	var customerRelations = [];
+	var opportunities = [];
+	var suppliers = [];
+	var warehouses = [];
 
-    // authenticate with the system by getting a token
-    $.ajax({
-        url: "http://demo.steltix.com/jderest/tokenrequest", // <<- JD Edwards API token service
-        type: 'post', // <<- the method that we using
-        data: JSON.stringify(req), // <<- JSON of our request obj
-        contentType: 'application/json', // <<- telling server how we are going to communicate
-        fail: function (xhr, textStatus, errorThrown) {
+	
+	for (var i = 0; i < data.length; i++) {
+		if (data[i].F0101_AT1.includes('C')) {
+			customerRelations.push(data[i]);
+		}
+		
+		if (data[i].F0101_AT1.includes('O')) {
+			opportunities.push(data[i]);
+		}
+		
+		if (data[i].F0101_AT1.includes('V')) {
+			suppliers.push(data[i]);
+		}
+		
+		if (data[i].F0101_AT1.includes('W')) {
+			warehouses.push(data[i]);
+		}
 
-            console.log(errorThrown, textStatus, xhr) //  <<- log any http errors to the console
+	}
+	panelData.innerHTML = panelTemplate({
+			number_companies: data.length,
+			number_customers: customerRelations.length,
+			number_opportunities: opportunities.length,
+			number_suppliers: suppliers.length,
+			number_warehouses: warehouses.length
+	});
+}
+	
+});
 
-        }
-    }).done(function (data, textStatus, xhr) {
-
-        if (data.hasOwnProperty('userInfo')) {  // <<- see example response below
-
-            var token = data.userInfo.token;
-
-            // build a request obj to fetch data
-            var reqData = {  
-                    "deviceName" : "aisTester",
-                    "targetName" : "F0101",
-                    "targetType" : "table",
-                    "outputType":"GRID_DATA",
-                    "dataServiceType" : "BROWSE",  
-                    "maxPageSize" : "100",
-                    "query" : {
-                        "autoFind" : true,
-                        "condition" : []
-                        }
-                    }
-
-
-            reqData.token = token;  // <<- add our token from 1st request
-
-            $.ajax({
-                url: "http://demo.steltix.com/jderest/dataservice", // <<- can also try http://demo.steltix.com/jderest/formservice with example request object below"
-                type: "post",
-                contentType: "application/json",
-                data: JSON.stringify(reqData)
-            }).done(function (data) {
-
-                console.log(JSON.stringify(data)) // <<- log data to console
-                const resultsElem = document.querySelector('.results');  // <<- handle for results
-                resultsElem.textContent = JSON.stringify(data);  // <<-  add data to DOM
-                
-            })
-
-        }
-
-    })
-
-})
 
 
 
